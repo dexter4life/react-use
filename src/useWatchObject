@@ -1,0 +1,29 @@
+import md5 from 'md5';
+import { useCallback, useRef, useState } from 'react';
+import { useMap } from 'react-use';
+
+export type UseWatchObjectReturn<T> = [(obj: any) => void, <K extends keyof T>(key: K, value: T[K]) => void, boolean]
+
+/**
+ * @return {UseWatchObjectReturn}
+ */
+export default function useWatchObject<T extends object = any>(): UseWatchObjectReturn<T> {
+    const [hash, setHash] = useState<string | null>(null);
+    const ref = useRef({ hash: '' });
+    const [change, setChange] = useState(false);
+    const [map, { set, setAll }] = useMap<T>({} as any);
+
+    const watch = useCallback((obj: any) => {
+        setAll(obj);
+        ref.current.hash = md5(JSON.stringify(obj));
+    }, [setAll]);
+
+    const handleSet = useCallback(<K extends keyof T>(key: K, value: T[K]) => {
+        set(key, value);
+        setHash(md5(JSON.stringify(map)));
+        console.log(ref.current.hash, hash);
+        setChange(ref.current.hash !== hash);
+    }, [set, map, setChange, hash]);
+
+    return [watch, handleSet, change];
+}
